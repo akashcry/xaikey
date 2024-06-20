@@ -1,13 +1,12 @@
 const { ethers } = require("ethers");
-const axios = require('axios');
+const axios = require("axios");
 const cron = require("node-cron");
-
 
 const provider = new ethers.providers.JsonRpcProvider(
   "https://arbitrum.llamarpc.com"
 );
 
-const contractAddresses = [
+const contracts = [
   "0x372e2aE366E3DF4454cD432F194367854b54fEE7",
   "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
   "0x958E5cC35fD7f95C135D55C7209Fa972bDb68617",
@@ -15,50 +14,61 @@ const contractAddresses = [
   "0x9cc5CF4ad06BeEaD154cCdeaB38a77c7Bde4bf2B",
 ];
 
-const token = "6557351718:AAFGrXLc5N9coR9Yu2hFInNvSsiLwzAsyBA";
-const chat_id = "1059750229";
+const apiKey = "6557351718:AAFGrXLc5N9coR9Yu2hFInNvSsiLwzAsyBA";
+const chatId = "1059750229";
 
-async function sendMessage(message) {
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+async function sendMessage(apiKey, chatId, message) {
+  const url = `https://api.telegram.org/bot${apiKey}/sendMessage`;
   const body = {
-    chat_id: chat_id,
+    chat_id: chatId,
     text: message,
   };
 
   try {
     const response = await axios.post(url, body);
 
-        if (!response.data.ok) {
-            throw new Error(`Telegram API error: ${response.data.description}`);
-        }
+    if (!response.data.ok) {
+      throw new Error(`Telegram API error: ${response.data.description}`);
+    }
+
     console.log("Message sent successfully");
   } catch (error) {
-    console.error("Error sending message:", error);
+    console.error("Error sending message:", error.message);
   }
 }
 
 async function checkContracts() {
-  try {
-    for (let address of contractAddresses) {
-      const contract = new ethers.Contract(address, abi, provider);
+  const currentDate = new Date();
+  console.log(`Running check at: ${currentDate.toLocaleString()}`);
+  for (let address of contracts) {
+    const contract = new ethers.Contract(address, abi, provider);
 
+    try {
       const stakedKeysCount = await contract.getStakedKeysCount();
       const pool = await contract.getPoolInfo();
       const poolName = pool._name;
-
       console.log("Pool Name:", poolName);
       console.log(poolName, ":", stakedKeysCount.toString());
 
-      if (stakedKeysCount.lt(1000)) {
-        const message = `Alert: ${poolName} has staked keys count less than 1000. Current count: ${stakedKeysCount.toString()}`;
-        await sendMessage(message);
+      if (parseInt(stakedKeysCount) < 1001) {
+        await sendMessage(
+          apiKey,
+          chatId,
+          `Pool: ${poolName} has less than 1000 staked keys!`
+        );
       }
+    } catch (error) {
+      console.error("Error fetching staked keys count:", error);
     }
-  } catch (error) {
-    console.error("Error checking contracts:", error);
   }
 }
-// Define the contract ABI
+
+// Schedule the task to run every 30 minutes
+cron.schedule("*/30 * * * *", () => {
+  const currentDate = new Date();
+  console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+  checkContracts();
+});
 const abi = [
   {
     anonymous: false,
@@ -664,11 +674,4 @@ const abi = [
     type: "function",
   },
 ];
-// Schedule the task to run every 30 minutes
-cron.schedule("*/30 * * * *", () => {
-  console.log("Running checkContracts every 30 minutes");
-  checkContracts();
-});
-
-// Run the function initially when the script starts
 checkContracts();
