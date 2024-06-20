@@ -2,6 +2,62 @@ const { ethers } = require("ethers");
 // const fetch = require("node-fetch");
 const cron = require("node-cron");
 
+
+const provider = new ethers.providers.JsonRpcProvider(
+  "https://arbitrum.llamarpc.com"
+);
+
+const contractAddresses = [
+  "0x372e2aE366E3DF4454cD432F194367854b54fEE7",
+  "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
+  "0x958E5cC35fD7f95C135D55C7209Fa972bDb68617",
+  "0x124EFaD83C11cb1112A8A342E83233619b41a992",
+  "0x9cc5CF4ad06BeEaD154cCdeaB38a77c7Bde4bf2B",
+];
+
+const token = "6557351718:AAFGrXLc5N9coR9Yu2hFInNvSsiLwzAsyBA";
+const chat_id = "1059750229";
+
+async function sendMessage(message) {
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const params = {
+    chat_id: chat_id,
+    text: message,
+  };
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    console.log("Message sent successfully");
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
+}
+
+async function checkContracts() {
+  try {
+    for (let address of contractAddresses) {
+      const contract = new ethers.Contract(address, abi, provider);
+
+      const stakedKeysCount = await contract.getStakedKeysCount();
+      const pool = await contract.getPoolInfo();
+      const poolName = pool._name;
+
+      console.log("Pool Name:", poolName);
+      console.log(poolName, ":", stakedKeysCount.toString());
+
+      if (stakedKeysCount.lt(1001)) {
+        const message = `Alert: ${poolName} has staked keys count less than 1000. Current count: ${stakedKeysCount.toString()}`;
+        await sendMessage(message);
+      }
+    }
+  } catch (error) {
+    console.error("Error checking contracts:", error);
+  }
+}
 // Define the contract ABI
 const abi = [
   {
@@ -608,62 +664,6 @@ const abi = [
     type: "function",
   },
 ];
-const provider = new ethers.providers.JsonRpcProvider(
-  "https://arbitrum.llamarpc.com"
-);
-
-const contractAddresses = [
-  "0x372e2aE366E3DF4454cD432F194367854b54fEE7",
-  "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
-  "0x958E5cC35fD7f95C135D55C7209Fa972bDb68617",
-  "0x124EFaD83C11cb1112A8A342E83233619b41a992",
-  "0x9cc5CF4ad06BeEaD154cCdeaB38a77c7Bde4bf2B",
-];
-
-const token = "6557351718:AAFGrXLc5N9coR9Yu2hFInNvSsiLwzAsyBA";
-const chat_id = "1059750229";
-
-async function sendMessage(message) {
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const params = {
-    chat_id: chat_id,
-    text: message,
-  };
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-    console.log("Message sent successfully");
-  } catch (error) {
-    console.error("Error sending message:", error);
-  }
-}
-
-async function checkContracts() {
-  try {
-    for (let address of contractAddresses) {
-      const contract = new ethers.Contract(address, abi, provider);
-
-      const stakedKeysCount = await contract.getStakedKeysCount();
-      const pool = await contract.getPoolInfo();
-      const poolName = pool._name;
-
-      console.log("Pool Name:", poolName);
-      console.log(poolName, ":", stakedKeysCount.toString());
-
-      if (stakedKeysCount.lt(1000)) {
-        const message = `Alert: ${poolName} has staked keys count less than 1000. Current count: ${stakedKeysCount.toString()}`;
-        await sendMessage(message);
-      }
-    }
-  } catch (error) {
-    console.error("Error checking contracts:", error);
-  }
-}
-
 // Schedule the task to run every 30 minutes
 cron.schedule("*/30 * * * *", () => {
   console.log("Running checkContracts every 30 minutes");
