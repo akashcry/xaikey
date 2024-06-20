@@ -47,14 +47,13 @@ async function checkContracts() {
       const stakedKeysCount = await contract.getStakedKeysCount();
       const pool = await contract.getPoolInfo();
       const poolName = pool._name;
-      console.log("Pool Name:", poolName);
       console.log(poolName, ":", stakedKeysCount.toString());
 
       if (parseInt(stakedKeysCount) < 1000) {
         await sendMessage(
           apiKey,
           chatId,
-          `Pool: ${poolName} has less than 1000 staked keys!`
+          `Pool: ${poolName} has ${stakedKeysCount.toString()} staked keys.`
         );
       }
     } catch (error) {
@@ -64,10 +63,10 @@ async function checkContracts() {
 }
 
 // Schedule the task to run every 30 minutes
-cron.schedule('*/10 * * * *', () => {
-    const currentDate = new Date();
-    console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
-    checkContracts();
+cron.schedule("* * * * *", () => {
+  const currentDate = new Date();
+  console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+  checkContracts();
 });
 const abi = [
   {
