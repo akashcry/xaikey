@@ -49,7 +49,7 @@ async function checkContracts() {
       console.log("Pool Name:", poolName);
       console.log(poolName, ":", stakedKeysCount.toString());
 
-      if (stakedKeysCount.lt(1001)) {
+      if (stakedKeysCount.lt(1000)) {
         const message = `Alert: ${poolName} has staked keys count less than 1000. Current count: ${stakedKeysCount.toString()}`;
         await sendMessage(message);
       }
