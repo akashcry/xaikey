@@ -64,10 +64,10 @@ async function checkContracts() {
 }
 
 // Schedule the task to run every 30 minutes
-cron.schedule("*/30 * * * *", () => {
-  const currentDate = new Date();
-  console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
-  checkContracts();
+cron.schedule('*/10 * * * *', () => {
+    const currentDate = new Date();
+    console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+    checkContracts();
 });
 const abi = [
   {
