@@ -1,5 +1,5 @@
 const { ethers } = require("ethers");
-// const fetch = require("node-fetch");
+const axios = require('axios');
 const cron = require("node-cron");
 
 
@@ -20,17 +20,17 @@ const chat_id = "1059750229";
 
 async function sendMessage(message) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const params = {
+  const body = {
     chat_id: chat_id,
     text: message,
   };
 
   try {
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
+    const response = await axios.post(url, body);
+
+        if (!response.data.ok) {
+            throw new Error(`Telegram API error: ${response.data.description}`);
+        }
     console.log("Message sent successfully");
   } catch (error) {
     console.error("Error sending message:", error);
