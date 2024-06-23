@@ -694,7 +694,6 @@ async function processLatestMessage() {
   try {
     const response = await axios.get(updatesUrl);
     const updates = response.data.result;
-    console.log("Updates:", updates);
     if (updates.length > 0) {
       const latestUpdate = updates[updates.length - 1];
       const message = latestUpdate.message.text;
