@@ -622,7 +622,6 @@ const abi = [
   },
 ];
 
-
 async function sendMessage(apiKey, chatId, message) {
   const url = `https://api.telegram.org/bot${apiKey}/sendMessage`;
   const body = {
@@ -670,7 +669,6 @@ async function checkContracts() {
 
 // Schedule the task to run every 1 minute
 
-
 // Function to send a test message to Telegram
 async function testTelegram() {
   await sendMessage(
@@ -687,72 +685,88 @@ async function testTelegram() {
 checkContracts();
 let lastUpdateId = 0;
 // Function to process incoming messages
-async function processLatestMessage() {
+async function processLatestMessages() {
   const updatesUrl = `https://api.telegram.org/bot${apiKey}/getUpdates?offset=${
     lastUpdateId + 1
   }`;
   try {
     const response = await axios.get(updatesUrl);
     const updates = response.data.result;
-    if (updates.length > 0) {
-      const latestUpdate = updates[updates.length - 1];
-      const message = latestUpdate.message.text;
-      const chatId = latestUpdate.message.chat.id;
-      lastUpdateId = latestUpdate.update_id;
 
-      if (message.startsWith("add ")) {
-        const address = message.split(" ")[1];
-        if (!contracts.includes(address)) {
-          contracts.push(address);
-          await sendMessage(apiKey, chatId, `Contract ${address} added.`);
-        } else {
-          await sendMessage(
-            apiKey,
-            chatId,
-            `Contract ${address} is already in the list.`
-          );
-        }
-      } else if (message.startsWith("remove ")) {
-        const address = message.split(" ")[1];
-        const index = contracts.indexOf(address);
-        if (index > -1) {
-          contracts.splice(index, 1);
-          await sendMessage(apiKey, chatId, `Contract ${address} removed.`);
-        } else {
-          await sendMessage(apiKey, chatId, `Contract ${address} not found.`);
-        }
-      } else if (message === "list") {
-        let messageList = "Contracts:\n";
-        for (let address of contracts) {
-          const contract = new ethers.Contract(address, abi, provider);
-          try {
-            const pool = await contract.getPoolInfo();
-            const poolName = pool._name;
-            messageList += `${poolName} : ${address}\n`;
-          } catch (error) {
-            console.error("Error fetching pool info:", error);
-            messageList += `Unknown Pool : ${address}\n`;
+    if (updates.length > 0) {
+      for (const update of updates) {
+        let message = update.message
+          ? update.message.text
+          : update.edited_message
+          ? update.edited_message.text
+          : null;
+        const chatId = update.message
+          ? update.message.chat.id
+          : update.edited_message
+          ? update.edited_message.chat.id
+          : null;
+        lastUpdateId = update.update_id;
+
+        if (message) {
+          if (message.startsWith("add ")) {
+            const address = message.split(" ")[1];
+            if (!contracts.includes(address)) {
+              contracts.push(address);
+              await sendMessage(apiKey, chatId, `Contract ${address} added.`);
+            } else {
+              await sendMessage(
+                apiKey,
+                chatId,
+                `Contract ${address} is already in the list.`
+              );
+            }
+          } else if (message.startsWith("remove ")) {
+            const address = message.split(" ")[1];
+            const index = contracts.indexOf(address);
+            if (index > -1) {
+              contracts.splice(index, 1);
+              await sendMessage(apiKey, chatId, `Contract ${address} removed.`);
+            } else {
+              await sendMessage(
+                apiKey,
+                chatId,
+                `Contract ${address} not found.`
+              );
+            }
+          } else if (message === "list") {
+            let messageList = "Contracts:\n";
+            for (let address of contracts) {
+              const contract = new ethers.Contract(address, abi, provider);
+              try {
+                const pool = await contract.getPoolInfo();
+                const poolName = pool._name;
+                messageList += `${poolName} : ${address}\n`;
+              } catch (error) {
+                console.error("Error fetching pool info:", error);
+                messageList += `Unknown Pool : ${address}\n`;
+              }
+            }
+            await sendMessage(apiKey, chatId, messageList);
+          } else {
+            await sendMessage(
+              apiKey,
+              chatId,
+              "Invalid command. Use add <address>, remove <address>, or list."
+            );
           }
         }
-        await sendMessage(apiKey, chatId, messageList);
-      } else if (message === "check") {
-        await sendMessage(
-          apiKey,
-          chatId,
-          "Invalid command. Use add <address>, remove <address>, or list."
-        );
       }
     }
   } catch (error) {
     console.error("Error processing incoming messages:", error.message);
   }
 }
-processLatestMessage();
+processLatestMessages();
 // Schedule the task to check for incoming messages every minute
 
 cron.schedule("* * * * *", () => {
-//   const currentDate = new Date();
-//   console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+  //   const currentDate = new Date();
+  //   console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
   checkContracts();
-  processLatestMessage();
+  processLatestMessages();
 });
