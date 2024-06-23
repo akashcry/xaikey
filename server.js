@@ -6,7 +6,7 @@ const provider = new ethers.providers.JsonRpcProvider(
   "https://arbitrum.llamarpc.com"
 );
 
-const contracts = [
+let contracts = [
   "0x372e2aE366E3DF4454cD432F194367854b54fEE7",
   "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
   "0x958E5cC35fD7f95C135D55C7209Fa972bDb68617",
@@ -14,60 +14,8 @@ const contracts = [
   "0x9cc5CF4ad06BeEaD154cCdeaB38a77c7Bde4bf2B",
 ];
 
-const apiKey = "6557351718:AAFGrXLc5N9coR9Yu2hFInNvSsiLwzAsyBA";
-const chatId = "1059750229";
-
-async function sendMessage(apiKey, chatId, message) {
-  const url = `https://api.telegram.org/bot${apiKey}/sendMessage`;
-  const body = {
-    chat_id: chatId,
-    text: message,
-  };
-
-  try {
-    const response = await axios.post(url, body);
-
-    if (!response.data.ok) {
-      throw new Error(`Telegram API error: ${response.data.description}`);
-    }
-
-    console.log("Message sent successfully");
-  } catch (error) {
-    console.error("Error sending message:", error.message);
-  }
-}
-
-async function checkContracts() {
-  const currentDate = new Date();
-  console.log(`Running check at: ${currentDate.toLocaleString()}`);
-  for (let address of contracts) {
-    const contract = new ethers.Contract(address, abi, provider);
-
-    try {
-      const stakedKeysCount = await contract.getStakedKeysCount();
-      const pool = await contract.getPoolInfo();
-      const poolName = pool._name;
-      console.log(poolName, ":", stakedKeysCount.toString());
-
-      if (parseInt(stakedKeysCount) < 1000) {
-        await sendMessage(
-          apiKey,
-          chatId,
-          `Pool: ${poolName} has ${stakedKeysCount.toString()} staked keys.`
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching staked keys count:", error);
-    }
-  }
-}
-
-// Schedule the task to run every 30 minutes
-cron.schedule("* * * * *", () => {
-  const currentDate = new Date();
-  console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
-  checkContracts();
-});
+const apiKey = "6632731263:AAGU1_2Z7-b5zi9gPdoBbNRTBZbggm-NhRU";
+const chatId = "-4037411654";
 const abi = [
   {
     anonymous: false,
@@ -673,4 +621,139 @@ const abi = [
     type: "function",
   },
 ];
+
+
+async function sendMessage(apiKey, chatId, message) {
+  const url = `https://api.telegram.org/bot${apiKey}/sendMessage`;
+  const body = {
+    chat_id: chatId,
+    text: message,
+  };
+
+  try {
+    const response = await axios.post(url, body);
+
+    if (!response.data.ok) {
+      throw new Error(`Telegram API error: ${response.data.description}`);
+    }
+
+    console.log("Message sent successfully");
+  } catch (error) {
+    console.error("Error sending message:", error.message);
+  }
+}
+
+async function checkContracts() {
+  const currentDate = new Date();
+  console.log(`Running check at: ${currentDate.toLocaleString()}`);
+  for (let address of contracts) {
+    const contract = new ethers.Contract(address, abi, provider);
+
+    try {
+      const stakedKeysCount = await contract.getStakedKeysCount();
+      const pool = await contract.getPoolInfo();
+      const poolName = pool._name;
+      console.log(poolName, ":", stakedKeysCount.toString());
+
+      if (parseInt(stakedKeysCount) < 1000) {
+        await sendMessage(
+          apiKey,
+          chatId,
+          `Pool: ${poolName} has ${stakedKeysCount.toString()} staked keys.`
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching staked keys count:", error);
+    }
+  }
+}
+
+// Schedule the task to run every 1 minute
+
+
+// Function to send a test message to Telegram
+async function testTelegram() {
+  await sendMessage(
+    apiKey,
+    chatId,
+    "This is a test message to verify Telegram integration."
+  );
+}
+
+// Call the test function on script start
+// testTelegram();
+
+// Start the initial check
 checkContracts();
+let lastUpdateId = 0;
+// Function to process incoming messages
+async function processLatestMessage() {
+  const updatesUrl = `https://api.telegram.org/bot${apiKey}/getUpdates?offset=${
+    lastUpdateId + 1
+  }`;
+  try {
+    const response = await axios.get(updatesUrl);
+    const updates = response.data.result;
+    console.log("Updates:", updates);
+    if (updates.length > 0) {
+      const latestUpdate = updates[updates.length - 1];
+      const message = latestUpdate.message.text;
+      const chatId = latestUpdate.message.chat.id;
+      lastUpdateId = latestUpdate.update_id;
+
+      if (message.startsWith("add ")) {
+        const address = message.split(" ")[1];
+        if (!contracts.includes(address)) {
+          contracts.push(address);
+          await sendMessage(apiKey, chatId, `Contract ${address} added.`);
+        } else {
+          await sendMessage(
+            apiKey,
+            chatId,
+            `Contract ${address} is already in the list.`
+          );
+        }
+      } else if (message.startsWith("remove ")) {
+        const address = message.split(" ")[1];
+        const index = contracts.indexOf(address);
+        if (index > -1) {
+          contracts.splice(index, 1);
+          await sendMessage(apiKey, chatId, `Contract ${address} removed.`);
+        } else {
+          await sendMessage(apiKey, chatId, `Contract ${address} not found.`);
+        }
+      } else if (message === "list") {
+        let messageList = "Contracts:\n";
+        for (let address of contracts) {
+          const contract = new ethers.Contract(address, abi, provider);
+          try {
+            const pool = await contract.getPoolInfo();
+            const poolName = pool._name;
+            messageList += `${poolName} : ${address}\n`;
+          } catch (error) {
+            console.error("Error fetching pool info:", error);
+            messageList += `Unknown Pool : ${address}\n`;
+          }
+        }
+        await sendMessage(apiKey, chatId, messageList);
+      } else if (message === "check") {
+        await sendMessage(
+          apiKey,
+          chatId,
+          "Invalid command. Use add <address>, remove <address>, or list."
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error processing incoming messages:", error.message);
+  }
+}
+processLatestMessage();
+// Schedule the task to check for incoming messages every minute
+
+cron.schedule("* * * * *", () => {
+//   const currentDate = new Date();
+//   console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+  checkContracts();
+  processLatestMessage();
+});
