@@ -7,12 +7,11 @@ const provider = new ethers.providers.JsonRpcProvider(
 );
 
 let contracts = [
-  "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
-  "0xcBCaA63925dC615Bde957657f49842ae5C595ea2",
+  "0x255D8393c5A343F4040C31f3acd38A44d5d3245e",
   "0x7b9F49fc73C380E13a0bDCf91B53C0AE612Df8BF",
   "0x372e2aE366E3DF4454cD432F194367854b54fEE7",
+  "0x80d1A3c84B7C7185Dc7dbf4787713d55eea95e27",
   "0x958E5cC35fD7f95C135D55C7209Fa972bDb68617",
-  "0x255D8393c5A343F4040C31f3acd38A44d5d3245e",
   "0x1D7725Ca66C7eb4089C80D92876CB69558830367"
 ];
 
@@ -681,7 +680,7 @@ async function testTelegram() {
 }
 
 // Call the test function on script start
-// testTelegram();
+testTelegram();
 
 // Start the initial check
 checkContracts();
