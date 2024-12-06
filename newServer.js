@@ -1,6 +1,29 @@
+// install node
+// curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+// source ~/.bashrc
+// nvm install --lts
+// nvm use --lts
+
+
 const { ethers } = require("ethers");
 const axios = require("axios");
 const cron = require("node-cron");
+
+// 1 minute
+// cron.schedule("* * * * *", () => {
+//   //   const currentDate = new Date();
+//   //   console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
+//   checkContracts();
+//   processLatestMessages();
+// });
+
+// 30 sec
+cron.schedule("*/30 * * * * *", () => {
+  const currentDate = new Date();
+  console.log(`Task triggered at: ${currentDate.toLocaleString()}`);
+  checkContracts();
+  processLatestMessages();
+});
 
 const provider = new ethers.providers.JsonRpcProvider(
   "https://arbitrum.llamarpc.com"
@@ -763,10 +786,3 @@ async function processLatestMessages() {
 }
 processLatestMessages();
 // Schedule the task to check for incoming messages every minute
-
-cron.schedule("* * * * *", () => {
-  //   const currentDate = new Date();
-  //   console.log(`Cron job triggered at: ${currentDate.toLocaleString()}`);
-  checkContracts();
-  processLatestMessages();
-});
