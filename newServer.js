@@ -677,7 +677,7 @@ async function checkContracts() {
       const poolName = pool._name;
       console.log(poolName, ":", stakedKeysCount.toString());
 
-      if (parseInt(stakedKeysCount) < 1000) {
+      if (parseInt(stakedKeysCount) < 100000) {
         await sendMessage(
           apiKey,
           chatId,
